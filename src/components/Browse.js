@@ -1,28 +1,37 @@
 import Header from "./Header";
-import DataDebug from "./DataDebug";
+import MainContainer from "./MainContainer";
+import SecondaryContainer from "./SecondaryContainer";
 import useNowPlayingMovies from "../hooks/useNowPlayingMovies";
 import usePopularMovies from "../hooks/usePopularMovies";
 
 // BROWSE PAGE: the page shown after sign in.
 //
-// Notice how little it does: calling a custom hook is one line. All the
-// fetching logic lives in the hooks, and the data lands in Redux.
-// Section 5 replaces the temporary DataDebug panel with the real movie UI
-// (MainContainer + SecondaryContainer) and adds the GPT search toggle in
-// Section 6.
+// COMPONENT TREE (data flows DOWN as props, from Redux via useSelector):
+//   Browse
+//    |- Header
+//    |- MainContainer            first now-playing movie
+//    |    |- VideoTitle          title, overview, buttons
+//    |    |- VideoBackground     autoplaying trailer
+//    |- SecondaryContainer       rows of posters
+//         |- MovieList (x5)      one titled row
+//              |- MovieCard (xN) one poster
+//
+// EXECUTION FLOW:
+//   1. Browse renders and calls the two data hooks (Section 4)
+//   2. TMDB responds -> the hooks dispatch -> Redux updates
+//   3. MainContainer and SecondaryContainer read the new data and re-render
+//   4. VideoBackground gets the movie id, its hook fetches the trailer, and
+//      the iframe appears
+// Section 6 will wrap this in a switch between this view and GPT Search.
 const Browse = () => {
-  // These two start downloading as soon as Browse appears on screen.
   useNowPlayingMovies();
   usePopularMovies();
 
   return (
-    <div className="min-h-screen bg-black">
+    <div>
       <Header />
-      <div className="pt-48 text-center text-white">
-        <h2 className="text-2xl font-bold">Browse page</h2>
-        <p className="text-gray-400 mt-2">Data layer check (Section 4)</p>
-        <DataDebug />
-      </div>
+      <MainContainer />
+      <SecondaryContainer />
     </div>
   );
 };

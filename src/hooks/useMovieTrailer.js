@@ -5,7 +5,7 @@ import { addTrailerVideo } from "../utils/moviesSlice";
 
 // Fetches the videos of ONE movie and stores the best trailer in Redux.
 // Unlike the list hooks it needs an input: the movie's id. A hook can take
-// arguments like any function. In Section 5, VideoBackground will call
+// arguments like any function. VideoBackground calls
 // useMovieTrailer(movieId) with the id of the featured movie.
 const useMovieTrailer = (movieId) => {
   const dispatch = useDispatch();

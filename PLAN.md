@@ -11,8 +11,8 @@ Rule: one section per round. The next section starts only after explicit approva
 | 2 | Login / Sign-up UI and validation | DONE |
 | 3 | Firebase authentication and auth-driven routing | DONE |
 | 4 | TMDB data layer (Redux + custom hooks) | DONE |
-| 5 | Browse page UI | Waiting for approval |
-| 6 | GPT search (OpenAI + TMDB) and multi-language | Pending |
+| 5 | Browse page UI | DONE |
+| 6 | GPT search (OpenAI + TMDB) and multi-language | Waiting for approval |
 | 7 | Polish, responsiveness, deployment | Pending |
 
 ---
@@ -157,7 +157,8 @@ Redux store (4 slices):
 - **Learn:** what a custom hook is and why, `useEffect` with an empty dependency array, API auth headers, normalizing API data into a store.
 - **You must do:** create a free TMDB account and copy the "API Read Access Token" into `.env`.
 
-### Section 5 - Browse page UI
+### Section 5 - Browse page UI  (DONE)
+- **Built:** as listed below. Differences from the original: `w-full` replaces `w-screen` (avoids a sideways scrollbar on Windows; also changed in `Header.js`); the trailer iframe is drawn only once a trailer key exists (the original requests `.../embed/undefined` first); `MainContainer` also handles an empty list; the temporary `DataDebug.js` is retired (moved to `_to_delete/`, you can delete that folder). Extra: component tests and `@testing-library/react` + `jest-dom` as dev dependencies (the original project also lists them).
 - **Build:** the Netflix-style home screen.
 - **Features:** featured movie with autoplaying muted trailer behind the title and overview, rows of posters (Now Playing, Trending, Popular, Upcoming, Horror) that scroll sideways.
 - **Files:** create `MainContainer.js`, `VideoTitle.js`, `VideoBackground.js`, `SecondaryContainer.js`, `MovieList.js`, `MovieCard.js`; modify `Browse.js`.
@@ -223,3 +224,11 @@ Redux store (4 slices):
 - NOT tested: real TMDB (I have no token and no network route to TMDB from my workspace), so real response shapes are taken from the original code's usage, not observed.
 - You must do: create a TMDB account and put the API Read Access Token in `.env` as `REACT_APP_TMDB_KEY` (steps in README.md).
 - Known limitations: the movie cache is never cleared on sign out (same as the original); no retry button or error screen yet (Section 7).
+
+## Section 5 - testing log
+
+- `CI=true npm test -- --watchAll=false`: 16 of 16 pass (5 validator, 5 moviesSlice, 2 MovieCard, 2 MovieList, 2 SecondaryContainer).
+- `CI=true npm run build`: compiled successfully, no lint warnings.
+- Headless Chromium against the production build with Firebase, TMDB, poster images and the YouTube embed mocked: the featured title shows; the iframe src is exactly `https://www.youtube.com/embed/trailerKey?&autoplay=1&mute=1` and no `/embed/undefined` request was made; five rows (Now Playing, Trending, Popular, Upcoming Movies, Horror) render; 96 posters appear (19 per now-playing row x 4 + 20 popular; the movie with no poster is skipped); overview and "More Info" are visible at 1280px wide and hidden at 390px; no sideways scrollbar at either width; no page errors. Screenshots looked right (rows overlap the bottom of the banner on desktop).
+- NOT tested: the real YouTube player actually autoplaying (the embed was replaced by a placeholder; browsers/YouTube decide whether autoplay runs), real TMDB poster images, and the look with real artwork.
+- Known limitations: Trending, Upcoming and Horror reuse the now-playing list (same as the original); the Play and More Info buttons do nothing yet; no loading skeleton.
