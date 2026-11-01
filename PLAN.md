@@ -9,9 +9,9 @@ Rule: one section per round. The next section starts only after explicit approva
 |---|---------|--------|
 | 1 | Foundation (setup, store skeleton, routing) | DONE |
 | 2 | Login / Sign-up UI and validation | DONE |
-| 3 | Firebase authentication and auth-driven routing | Waiting for approval |
-| 4 | TMDB data layer (Redux + custom hooks) | Pending |
-| 5 | Browse page UI | Pending |
+| 3 | Firebase authentication and auth-driven routing | DONE |
+| 4 | TMDB data layer (Redux + custom hooks) | DONE |
+| 5 | Browse page UI | Waiting for approval |
 | 6 | GPT search (OpenAI + TMDB) and multi-language | Pending |
 | 7 | Polish, responsiveness, deployment | Pending |
 
@@ -137,7 +137,8 @@ Redux store (4 slices):
 - **Connects:** Section 3 adds the Firebase calls inside the click handler written here.
 - **Learn:** controlled state vs `useRef`, form handling with `preventDefault`, conditional rendering, regex validation.
 
-### Section 3 - Firebase authentication
+### Section 3 - Firebase authentication  (DONE)
+- **Built:** as listed below. Differences from the original: Firebase config is read from `.env`; Firebase Analytics is not included (the original imported it but never used it); a clear error is thrown if the config is missing; sign-out failures are logged to the console instead of navigating to a non-existent `/error` route (proper error UI is Section 7); the `useEffect` has a complete dependency list so lint stays clean.
 - **Build:** real accounts and auth-driven navigation.
 - **Features:** create account, sign in, sign out, save display name and avatar, redirect `/` <-> `/browse` automatically, user avatar and Sign Out in the header.
 - **Files:** create `utils/firebase.js`; modify `Login.js`, `Header.js`.
@@ -146,7 +147,8 @@ Redux store (4 slices):
 - **Learn:** `useEffect` cleanup (unsubscribe), observer pattern (`onAuthStateChanged`), async promises, single-source-of-truth for auth.
 - **You must do:** create a free Firebase project, enable Email/Password sign-in, and put its web config in `.env`.
 
-### Section 4 - TMDB data layer
+### Section 4 - TMDB data layer  (DONE)
+- **Built:** as listed below. Differences from the original: the hooks check `response.ok` and log TMDB's error message instead of crashing on a bad token; `useEffect` dependency lists are complete (lint clean); the trailer is only stored when one exists; a temporary `components/DataDebug.js` panel on the Browse page shows what loaded (Section 5 deletes it). Extra file: `utils/moviesSlice.test.js`.
 - **Build:** the data plumbing for the Browse page.
 - **Features:** now-playing and popular movie lists and the featured trailer stored in Redux, with simple "do not refetch" caching.
 - **Files:** create `utils/moviesSlice.js`, `hooks/useNowPlayingMovies.js`, `usePopularMovies.js`, `useMovieTrailer.js`; modify `appStore.js`, `Browse.js`.
@@ -204,3 +206,20 @@ Redux store (4 slices):
 - Headless Chromium against the production build: invalid email shows "Email ID is not valid"; weak password shows the password message; toggling to Sign Up adds the Full Name field and clears the error; valid input shows no error; no horizontal scroll at 390px wide; `/browse` still loads; no console errors.
 - Known limitations: valid input does nothing yet (Firebase arrives in Section 3); the Full Name field is not validated, same as the original; the Login component itself has no automated test (only `validate.js` does).
 - Not run on your machine (I cannot run `npm` there).
+
+## Section 3 - testing log
+
+- `CI=true npm test -- --watchAll=false`: 5 of 5 pass (no new unit tests; auth logic is covered by the browser test below).
+- `CI=true npm run build`: compiled successfully, no lint warnings.
+- Headless Chromium against the production build, with Firebase's network calls (sign up, sign in, profile update, account lookup) answered by a mock server that mimics Firebase's responses: anonymous `/browse` redirects to `/`; sign up lands on `/browse` with the avatar URL set and the header shows Sign Out; a page refresh keeps the session; visiting `/` while signed in redirects to `/browse`; sign out returns to `/`; wrong password shows `auth/invalid-credential`; correct password signs in; a duplicate email shows `auth/email-already-in-use`; no console errors.
+- NOT tested: your real Firebase project (I have no keys, and no network route to Firebase from my workspace), real Firebase error wording for every case, and the avatar image actually rendering (the external avatar host is unreachable from my workspace).
+- You must do: create a Firebase project and fill in `.env` (steps in README.md). Until then the app shows a "Missing REACT_APP_FIREBASE_API_KEY" error.
+
+## Section 4 - testing log
+
+- `CI=true npm test -- --watchAll=false`: 10 of 10 pass (5 validator + 5 moviesSlice).
+- `CI=true npm run build`: compiled successfully, no lint warnings.
+- Headless Chromium against the production build, with Firebase and TMDB answered by mock servers: after sign up the panel shows 20 now-playing movies, 20 popular movies and the trailer (the "Trailer" video was chosen over a "Teaser"); each endpoint (`now_playing`, `popular`, `/movie/100/videos`) was requested exactly once; the `Authorization: Bearer <token>` header was sent; signing out and back in made 0 new TMDB requests (Redux cache works); when TMDB answered 401 the page did not crash, logged `TMDB now_playing failed: 401 Invalid API key...`, stayed on "loading...", and did not retry in a loop.
+- NOT tested: real TMDB (I have no token and no network route to TMDB from my workspace), so real response shapes are taken from the original code's usage, not observed.
+- You must do: create a TMDB account and put the API Read Access Token in `.env` as `REACT_APP_TMDB_KEY` (steps in README.md).
+- Known limitations: the movie cache is never cleared on sign out (same as the original); no retry button or error screen yet (Section 7).

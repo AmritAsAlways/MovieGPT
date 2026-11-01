@@ -1,49 +1,89 @@
 import { useState, useRef } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { useDispatch } from "react-redux";
 import Header from "./Header";
 import { checkValidData } from "../utils/validate";
+import { auth } from "../utils/firebase";
+import { addUser } from "../utils/userSlice";
+import { USER_AVATAR } from "../utils/constants";
 
-// LOGIN PAGE (Section 2: UI + validation only).
-// Section 3 will add the real Firebase sign in / sign up inside
-// handleButtonClick, at the spot marked below.
+// LOGIN PAGE (Section 2 built the form, Section 3 adds Firebase).
 //
 // EXECUTION FLOW when the user clicks the button:
-//   1. handleButtonClick reads the three inputs through their refs
-//   2. checkValidData() returns an error message or null
-//   3. setErrorMessage() stores it -> React re-renders -> message shows under the form
-//   4. if there was an error we stop; otherwise Section 3 continues from here
+//   1. Read the inputs through their refs and validate them (validate.js)
+//   2. If invalid -> show the message and stop
+//   3. Sign Up mode: create the account, then save name + avatar on it
+//      Sign In mode: ask Firebase to sign the user in
+//   4. NOTE what this file does NOT do: it never navigates to /browse.
+//      When Firebase finishes, its auth state changes and the listener in
+//      Header.js (onAuthStateChanged) updates Redux and does the redirect.
+//      One place owns that logic, so it also works after a page refresh.
 const Login = () => {
-  // STATE (useState): values that, when changed, make React re-render.
-  // isSignInForm decides which version of the form is drawn.
   const [isSignInForm, setIsSignInForm] = useState(true);
-  // errorMessage is null (show nothing) or a string (show it in red).
   const [errorMessage, setErrorMessage] = useState(null);
+  const dispatch = useDispatch();
 
-  // REFS (useRef): a ref is a box ({ current: ... }) that React fills with the
-  // real DOM element once it is on screen, via the `ref={...}` attribute.
-  // We use refs instead of state for the inputs because we only need their
-  // values at ONE moment (the click). With state we would re-render the whole
-  // form on every keystroke for no benefit.
+  // Refs: read input values only when the button is clicked (see Section 2).
   const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
 
   const handleButtonClick = () => {
-    // Validate the form data. Note: the name field only exists in sign up
-    // mode and the original project does not validate it, so we don't either.
     const message = checkValidData(email.current.value, password.current.value);
     setErrorMessage(message);
-
-    // Early return: a "guard clause". If there is an error, do not continue.
     if (message) return;
 
-    // ---- Section 3 plugs in here ----
-    // isSignInForm ? signInWithEmailAndPassword(...) : createUserWithEmailAndPassword(...)
-    // `name.current?.value` will be used to save the display name on sign up.
+    if (!isSignInForm) {
+      // ---- SIGN UP ----
+      // Firebase calls return Promises: the work happens in the background and
+      // .then() runs on success, .catch() on failure.
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          const user = userCredential.user;
+
+          // A brand new Firebase account has no name or picture, so we save
+          // them with updateProfile (a second request).
+          return updateProfile(user, {
+            displayName: name.current.value,
+            photoURL: USER_AVATAR,
+          }).then(() => {
+            // Why dispatch again here? Firebase announces the new user
+            // (-> Header's listener -> addUser) as soon as the account exists,
+            // which is BEFORE updateProfile finishes. That first copy in Redux
+            // therefore has displayName = null. Now that the profile is
+            // saved, we read the fresh data from auth.currentUser and
+            // overwrite it so the header shows the right avatar.
+            const { uid, email, displayName, photoURL } = auth.currentUser;
+            dispatch(addUser({ uid, email, displayName, photoURL }));
+          });
+        })
+        .catch((error) => {
+          // error.code looks like "auth/email-already-in-use"
+          setErrorMessage(error.code + " - " + error.message);
+        });
+    } else {
+      // ---- SIGN IN ----
+      // On success we do nothing here on purpose; the Header listener reacts.
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      ).catch((error) => {
+        setErrorMessage(error.code + " - " + error.message);
+      });
+    }
   };
 
   const toggleSignInForm = () => {
     setIsSignInForm(!isSignInForm);
-    // Clear an old error so "Sign In" errors don't linger on the Sign Up form.
     setErrorMessage(null);
   };
 
@@ -55,13 +95,10 @@ const Login = () => {
           project's Netflix photo; swap it for an <img> later if you like. */}
       <div className="absolute inset-0 -z-0 bg-gradient-to-br from-gray-900 via-black to-red-950" />
 
-      {/* The form is a card centred horizontally with `left-0 right-0 mx-auto`.
-          On phones it takes the full width (w-full), from the `md:` breakpoint
-          up it takes 3/12 of the width (md:w-3/12). Tailwind is mobile-first:
-          un-prefixed classes apply everywhere, `md:` ones only on wider screens. */}
+      {/* Tailwind is mobile-first: un-prefixed classes apply everywhere,
+          `md:` ones only from the medium breakpoint up. */}
       <form
-        // The browser's default is to reload the page when a form submits.
-        // We handle everything in JavaScript, so we cancel that.
+        // Stop the browser's default "reload the page on submit".
         onSubmit={(e) => e.preventDefault()}
         className="w-full md:w-3/12 min-w-[320px] absolute p-12 bg-black my-36 mx-auto right-0 left-0 text-white rounded-lg bg-opacity-80"
       >
@@ -69,9 +106,7 @@ const Login = () => {
           {isSignInForm ? "Sign In" : "Sign Up"}
         </h1>
 
-        {/* CONDITIONAL RENDERING: `condition && <jsx />` draws the JSX only
-            when the condition is true. The Full Name input exists only while
-            signing up. */}
+        {/* Conditional rendering: the name field exists only while signing up. */}
         {!isSignInForm && (
           <input
             ref={name}
@@ -93,7 +128,6 @@ const Login = () => {
           className="p-4 my-4 w-full bg-gray-700 rounded"
         />
 
-        {/* Shows nothing while errorMessage is null. */}
         <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
 
         <button
