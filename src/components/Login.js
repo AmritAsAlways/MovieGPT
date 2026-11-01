@@ -128,7 +128,9 @@ const Login = () => {
           className="p-4 my-4 w-full bg-gray-700 rounded"
         />
 
-        <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
+        {errorMessage && (
+          <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
+        )}
 
         <button
           className="p-4 my-6 bg-red-700 hover:bg-red-600 w-full rounded-lg"

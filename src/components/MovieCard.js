@@ -12,8 +12,12 @@ const MovieCard = ({ posterPath }) => {
   if (!posterPath) return null;
 
   return (
-    <div className="w-36 md:w-48 pr-4">
-      <img alt="Movie Card" src={IMG_CDN_URL + posterPath} />
+    <div className="w-36 md:w-48 pr-4 shrink-0 transition-transform duration-200 hover:scale-105 cursor-pointer">
+      <img
+        className="rounded"
+        alt="Movie Card"
+        src={IMG_CDN_URL + posterPath}
+      />
     </div>
   );
 };

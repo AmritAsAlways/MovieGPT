@@ -43,6 +43,15 @@ Restart `npm start` every time you edit `.env`.
 
 On `/browse` you should see how many now-playing and popular movies loaded. If it stays on "loading...", open the browser console (F12): a message such as `TMDB now_playing failed: 401 Invalid API key` means the token in `.env` is wrong or missing.
 
+## OpenAI setup (needed from Section 6)
+
+1. Create a key at https://platform.openai.com/api-keys and put it in `.env` as `REACT_APP_OPENAI_KEY`.
+2. **Set a low monthly spending limit** on that key/project first. In this app the key is bundled into the browser code, so anyone who can open the site can read it (see the security note in `src/utils/openai.js`). Do not deploy publicly with a key that has a big budget.
+3. The default model is `gpt-6-luna` (the original project's `gpt-3.5-turbo` was scheduled for shutdown on 2026-10-23). If a search shows a "model not found" style error, set `REACT_APP_OPENAI_MODEL` in `.env` to a model your account can use.
+4. Restart `npm start`.
+
+To try it: sign in, click **GPT Search**, type something like "funny movies from the 90s" and press Enter. Without a key, the search shows a message naming the missing variable instead of breaking the app.
+
 ## Routes
 
 - `/` sign in / sign up. Signed-in users are sent to `/browse`.

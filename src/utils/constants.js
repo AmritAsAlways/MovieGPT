@@ -9,8 +9,8 @@ export const APP_NAME = "MOVIEGPT";
 // REACT_APP_, and it copies their values INTO the JavaScript bundle at
 // build time. Read that twice: anything under REACT_APP_ ends up visible to
 // anyone who opens the browser DevTools. That is fine for a TMDB read token
-// or Firebase web config, but it is NOT truly secret. We will talk about
-// what that means for the OpenAI key in Section 6.
+// or Firebase web config, but it is NOT truly secret. See the security note
+// in openai.js for what that means for the OpenAI key.
 // You must restart `npm start` after editing .env.
 
 // TMDB (used in Section 4). TMDB wants the token in an Authorization header.
@@ -36,5 +36,14 @@ export const SUPPORTED_LANGUAGES = [
   { identifier: "spanish", name: "Spanish" },
 ];
 
-// OpenAI key (used in Section 6).
+// OpenAI (Section 6).
 export const OPENAI_KEY = process.env.REACT_APP_OPENAI_KEY;
+
+// Which OpenAI model answers the search. The original project used
+// "gpt-3.5-turbo", but OpenAI shut that model down on 23 Oct 2026, so it no
+// longer works. Model names change over time, which is why this can be
+// overridden from .env without touching code: set REACT_APP_OPENAI_MODEL.
+// If a search shows an error like "model not found", check OpenAI's models
+// page for a current small, cheap model and put its name in .env.
+export const OPENAI_MODEL =
+  process.env.REACT_APP_OPENAI_MODEL || "gpt-6-luna";

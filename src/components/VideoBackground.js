@@ -19,7 +19,7 @@ const VideoBackground = ({ movieId }) => {
   useMovieTrailer(movieId);
 
   return (
-    <div className="w-full aspect-video bg-black">
+    <div className="relative w-full aspect-video bg-black">
       {trailerVideo?.key && (
         <iframe
           className="w-full aspect-video"
@@ -32,6 +32,8 @@ const VideoBackground = ({ movieId }) => {
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         ></iframe>
       )}
+      {/* Fades the bottom of the video into the black rows below it. */}
+      <div className="pointer-events-none absolute bottom-0 inset-x-0 h-1/4 bg-gradient-to-t from-black" />
     </div>
   );
 };

@@ -2,19 +2,24 @@ import { useEffect } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { APP_NAME } from "../utils/constants";
+import { APP_NAME, SUPPORTED_LANGUAGES } from "../utils/constants";
 import { auth } from "../utils/firebase";
 import { addUser, removeUser } from "../utils/userSlice";
+import { toggleGptSearchView } from "../utils/gptSlice";
+import { changeLanguage } from "../utils/configSlice";
 
 // Header is rendered on every page, which makes it the right home for the
-// app-wide AUTH LISTENER. Section 6 will add the GPT toggle and language picker.
+// app-wide AUTH LISTENER, and for the controls that belong to the whole app:
+// the GPT Search toggle and the language picker (Section 6).
 const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Read the signed-in user from Redux. When the store's `user` changes,
-  // React re-renders this component automatically.
+  // Read from Redux. When any of these values change, React re-renders this
+  // component automatically.
   const user = useSelector((store) => store.user);
+  const showGptSearch = useSelector((store) => store.gpt.showGptSearch);
+  const langKey = useSelector((store) => store.config.lang);
 
   const handleSignOut = () => {
     // We only ask Firebase to sign out. We do NOT clear Redux or navigate
@@ -23,6 +28,16 @@ const Header = () => {
       // Real error handling arrives in Section 7.
       console.error("Sign out failed:", error);
     });
+  };
+
+  const handleGptSearchClick = () => {
+    // Flip the Browse page between the movie rows and the GPT search view.
+    dispatch(toggleGptSearchView());
+  };
+
+  const handleLanguageChange = (e) => {
+    // e.target.value is the `value` of the chosen <option>, e.g. "hindi".
+    dispatch(changeLanguage(e.target.value));
   };
 
   // ---- THE AUTH LISTENER ----------------------------------------------------
@@ -72,6 +87,30 @@ const Header = () => {
           when user is null. */}
       {user && (
         <div className="flex p-2 justify-between items-center">
+          {/* The language picker only makes sense on the GPT page, where the
+              search bar's texts are translated. */}
+          {showGptSearch && (
+            <select
+              // A "controlled" select: its value always comes from Redux, so
+              // the dropdown and the store can never disagree.
+              value={langKey}
+              className="p-2 m-2 bg-gray-900 text-white"
+              onChange={handleLanguageChange}
+              aria-label="Language"
+            >
+              {SUPPORTED_LANGUAGES.map((language) => (
+                <option key={language.identifier} value={language.identifier}>
+                  {language.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            className="py-2 px-4 mx-4 my-2 bg-purple-800 text-white rounded-lg"
+            onClick={handleGptSearchClick}
+          >
+            {showGptSearch ? "Homepage" : "GPT Search"}
+          </button>
           <img
             className="hidden md:block w-12 h-12 rounded"
             alt="user avatar"

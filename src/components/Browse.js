@@ -1,37 +1,49 @@
+import { useSelector } from "react-redux";
 import Header from "./Header";
 import MainContainer from "./MainContainer";
 import SecondaryContainer from "./SecondaryContainer";
+import GptSearch from "./GptSearch";
 import useNowPlayingMovies from "../hooks/useNowPlayingMovies";
 import usePopularMovies from "../hooks/usePopularMovies";
 
-// BROWSE PAGE: the page shown after sign in.
+// BROWSE PAGE: the page shown after sign in. It has TWO views and switches
+// between them with one value from Redux:
 //
-// COMPONENT TREE (data flows DOWN as props, from Redux via useSelector):
-//   Browse
-//    |- Header
-//    |- MainContainer            first now-playing movie
-//    |    |- VideoTitle          title, overview, buttons
-//    |    |- VideoBackground     autoplaying trailer
-//    |- SecondaryContainer       rows of posters
-//         |- MovieList (x5)      one titled row
-//              |- MovieCard (xN) one poster
+//   store.gpt.showGptSearch === false  ->  MainContainer + SecondaryContainer
+//        Browse                            (banner with trailer, poster rows)
+//         |- Header
+//         |- MainContainer      first now-playing movie: VideoTitle + VideoBackground
+//         |- SecondaryContainer rows: MovieList (x5) -> MovieCard (xN)
 //
-// EXECUTION FLOW:
-//   1. Browse renders and calls the two data hooks (Section 4)
-//   2. TMDB responds -> the hooks dispatch -> Redux updates
-//   3. MainContainer and SecondaryContainer read the new data and re-render
-//   4. VideoBackground gets the movie id, its hook fetches the trailer, and
-//      the iframe appears
-// Section 6 will wrap this in a switch between this view and GPT Search.
+//   store.gpt.showGptSearch === true   ->  GptSearch
+//         |- Header
+//         |- GptSearch          GptSearchBar + GptMovieSuggestions (MovieList rows)
+//
+// The Header's "GPT Search" / "Homepage" button dispatches
+// toggleGptSearchView(), Redux flips the flag, and this component re-renders
+// with the other view. No page navigation is involved.
+//
+// The data hooks stay here, outside the switch, so the movie lists keep
+// loading (and stay cached in Redux) whichever view is showing.
 const Browse = () => {
+  const showGptSearch = useSelector((store) => store.gpt.showGptSearch);
+
   useNowPlayingMovies();
   usePopularMovies();
 
   return (
     <div>
       <Header />
-      <MainContainer />
-      <SecondaryContainer />
+      {showGptSearch ? (
+        <GptSearch />
+      ) : (
+        // <> ... </> is a Fragment: it groups elements without adding an
+        // extra <div> to the page.
+        <>
+          <MainContainer />
+          <SecondaryContainer />
+        </>
+      )}
     </div>
   );
 };

@@ -12,8 +12,8 @@ Rule: one section per round. The next section starts only after explicit approva
 | 3 | Firebase authentication and auth-driven routing | DONE |
 | 4 | TMDB data layer (Redux + custom hooks) | DONE |
 | 5 | Browse page UI | DONE |
-| 6 | GPT search (OpenAI + TMDB) and multi-language | Waiting for approval |
-| 7 | Polish, responsiveness, deployment | Pending |
+| 6 | GPT search (OpenAI + TMDB) and multi-language | DONE |
+| 7 | Polish, responsiveness, deployment | Waiting for approval |
 
 ---
 
@@ -166,7 +166,8 @@ Redux store (4 slices):
 - **Connects:** consumes Section 4 data; its `MovieList` is reused by Section 6.
 - **Learn:** container vs presentational components, reading Redux state, layering with absolute positioning, responsive Tailwind (`md:`).
 
-### Section 6 - GPT search and multi-language
+### Section 6 - GPT search and multi-language  (DONE)
+- **Built:** as listed below. Differences from the original: the default model is `gpt-6-luna` (configurable with `REACT_APP_OPENAI_MODEL`) because `gpt-3.5-turbo` was scheduled to shut down on 2026-10-23; the OpenAI client is created lazily in `getOpenAIClient()` so a missing key cannot crash the whole app; GPT's answer is cleaned by `parseMovieNames` (trim, strip quotes, max 5); TMDB queries are URL-encoded; the search shows a loading state and on-screen errors (the original had a TODO); Enter submits the form; the language dropdown is controlled by Redux. Extra files: `utils/parseMovieNames.js` and tests for the slices, parser, OpenAI client and search bar.
 - **Build:** AI movie recommendations.
 - **Features:** "GPT Search" toggle, search bar, OpenAI returns 5 movie names, TMDB looked up for each, results shown in rows; English / Hindi / Spanish UI text.
 - **Files:** create `utils/gptSlice.js`, `configSlice.js`, `languageConstants.js`, `openai.js`, `components/{GptSearch,GptSearchBar,GptMovieSuggestions}.js`; modify `appStore.js`, `Header.js`, `Browse.js`.
@@ -232,3 +233,11 @@ Redux store (4 slices):
 - Headless Chromium against the production build with Firebase, TMDB, poster images and the YouTube embed mocked: the featured title shows; the iframe src is exactly `https://www.youtube.com/embed/trailerKey?&autoplay=1&mute=1` and no `/embed/undefined` request was made; five rows (Now Playing, Trending, Popular, Upcoming Movies, Horror) render; 96 posters appear (19 per now-playing row x 4 + 20 popular; the movie with no poster is skipped); overview and "More Info" are visible at 1280px wide and hidden at 390px; no sideways scrollbar at either width; no page errors. Screenshots looked right (rows overlap the bottom of the banner on desktop).
 - NOT tested: the real YouTube player actually autoplaying (the embed was replaced by a placeholder; browsers/YouTube decide whether autoplay runs), real TMDB poster images, and the look with real artwork.
 - Known limitations: Trending, Upcoming and Horror reuse the now-playing list (same as the original); the Play and More Info buttons do nothing yet; no loading skeleton.
+
+## Section 6 - testing log
+
+- `CI=true npm test -- --watchAll=false`: 31 of 31 pass in 9 suites (new: parseMovieNames 5, gpt/config slices 4, getOpenAIClient 2, GptSearchBar 4).
+- `CI=true npm run build`: compiled successfully, no lint warnings.
+- Headless Chromium against the production build with Firebase, TMDB, OpenAI, poster images and YouTube mocked: the language dropdown appears only on the GPT view; the button toggles between "GPT Search" and "Homepage"; pressing Enter sends one request to `https://api.openai.com/v1/chat/completions` with the `Bearer` key, the configured model and a prompt containing the typed query; GPT's messy answer (`Hera Pheri,  "Don" , Sholay, Dil Chahta Hai, Q&A`) became 5 clean TMDB searches (decoded queries equal the names, `Q&A` intact) and 5 rows with 30 posters; switching to Hindi and Spanish changed the placeholder and button text and kept the results; returning to Homepage showed the banner and coming back kept earlier results; an OpenAI 401 showed `401 Incorrect API key provided...`, re-enabled the button and left the old results in place; no sideways scroll at 390px; no page errors.
+- NOT tested: real OpenAI (no key, and no network route from my workspace). In particular I could not confirm that the default model `gpt-6-luna` works with the Chat Completions endpoint this code uses: OpenAI's models page says the newest models are available through the Responses API and client SDKs and does not state Chat Completions support. If the search returns a model or endpoint error, set `REACT_APP_OPENAI_MODEL` to another model, or tell me and we switch the call to the Responses API. Also not tested: real TMDB search results and real GPT answer quality.
+- Known limitations: on a phone the "(Sign Out)" text wraps and the Search button is tight (Section 7 responsive pass); signing out while on the GPT view keeps that view for the next sign-in (same as the original); GPT answers cost money on each search; the OpenAI key is visible in the browser (see README).
